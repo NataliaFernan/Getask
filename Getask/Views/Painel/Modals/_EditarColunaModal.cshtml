@@ -1,0 +1,24 @@
+﻿
+<div class="modal fade" id="editarColunaModal" tabindex="-1" aria-labelledby="editarColunaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editarColunaModalLabel">Editar Coluna</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <input type="hidden" id="modal-editar-coluna-id" />
+                    <div class="mb-3">
+                        <label for="coluna-editar-titulo" class="col-form-label">Título:</label>
+                        <input type="text" class="form-control" id="coluna-editar-titulo">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="salvarEdicaoColuna()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>

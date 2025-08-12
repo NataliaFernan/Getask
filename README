@@ -1,0 +1,43 @@
+## Tecnologias utilizadas
+
+- ASP.NET 9.0 MVC
+- Bootstrap 
+- Razor
+- Javascript
+- HTML
+- Elastic Mail (Conta grátis para teste)
+- CSS
+- Entity Framework
+- SQL Server
+
+Observações
+
+- Foi utilizado o padrão em camadas onde as Services, Repositorys se encontram em seus locais separados do projeto principal
+- Aplicação de boas práticas
+- Orientação a objetos
+- Código limpo
+- Bons nomes de classe, funções, que levam a entender o contexto
+- O Elastic Mail funciona apenas com conta de teste via painel, implementei para mostrar que eu sei fazer
+
+## Funcionalidades
+
+- Criar, Mover, alterar e deletar Tarefas
+- Criar, Mover, alterar e deletar colunas de tarefas
+- Autenticação do Usuário admin
+- Recuperar senha do Usuário admin
+
+## Regras de negócio
+
+- Cada Tarefa precisa ter obrigatóriamente uma coluna, após deletar uma coluna todas as tarefas são obrigatóriamente movidas à primeira coluna
+- É obrigatório ter ao menos uma coluna e a mesma não pode ser deletada
+- As Tarefas e os cards possuem posições que podem ser mudadas
+- As Tarefas devem ter um título e uma descrição opcional
+- As Colunas devem ter obrigatóriamente um Titulo
+- O Movimento das colunas e tarefas são ocasionadas pela localização do drag-and-drop e a ordem são reajustados
+- Interface simples e funcional com instruções claras
+- A coluna pode não ter tarefas dentro dela
+- Todas ações que modifiquem algo que pode se perder é utilizado modais de confirmação
+- Não há possibilidade de criar conta pois se trata de um sistema pessoal, a primeira conta é cadastrada e enviada por meio do esqueci a senha para que possa fazer o primeiro acesso
+- O Token do esqueci a senha tem duração de 15 minutos
+- Token inválido ou expirado é levado a uma teal de token inválido
+- Não tem aviso se foi enviado email com ou sem sucesso para evitar testes de emails para localizar a conta cadastrada, mantendo uma segurança

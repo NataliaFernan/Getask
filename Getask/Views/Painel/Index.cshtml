@@ -1,0 +1,470 @@
+﻿@model List<Getask.Repository.Models.ColunaTarefas>
+
+@{
+    ViewData["Title"] = "Quadro de Tarefas";
+}
+
+<style>
+    .card-list .card-header:hover,
+    .card-list .card-body {
+        cursor: grab;
+    }
+
+    .dragging {
+        opacity: 0.5;
+    }
+
+    .btn-close-column,
+    .btn-close-task {
+        background-color: transparent;
+        border: none;
+        color: #fff;
+        opacity: 0.7;
+        font-size: 1.25rem;
+        padding: 0;
+        margin-left: 0.5rem;
+        cursor: pointer;
+        transition: opacity 0.2s;
+        line-height: 1;
+    }
+
+        .btn-close-column:hover,
+        .btn-close-task:hover {
+            opacity: 1;
+        }
+
+        .btn-close-column i,
+        .btn-close-task i {
+            font-size: 1rem;
+        }
+</style>
+
+<div class="mb-3 d-flex justify-content-end">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#criarColunaModal">
+        + Adicionar Coluna
+    </button>
+</div>
+
+<div id="board-container" class="d-flex flex-row flex-nowrap overflow-auto p-3">
+    @foreach (var coluna in Model.OrderBy(c => c.Posicao))
+    {
+        <div id="coluna-@coluna.Id"
+             class="card me-3 card-list"
+             style="min-width: 18rem;"
+             data-coluna-id="@coluna.Id"
+             ondragover="permitirSoltarColuna(event)"
+             ondrop="soltouColuna(event)">
+
+            <div class="card-header d-flex justify-content-between align-items-center" draggable="true" ondragstart="pegarColuna(event)">
+                <h5 class="mb-0">@coluna.Titulo</h5>
+                <div class="d-flex">
+                    @if (coluna.Posicao != 0)
+                    {
+                        <button type="button" class="btn-close-column" data-bs-toggle="modal" data-bs-target="#confirmarDelecaoModal" onclick="setarColunaIdParaDeletar(@coluna.Id)">
+                            <i class="bi bi-x-lg" style="color: red"></i>
+                        </button>
+                    }
+                    <button type="button" class="btn-close-column" data-bs-toggle="modal" data-bs-target="#editarColunaModal" onclick="setarDadosParaEdicaoColuna(@coluna.Id, '@coluna.Titulo')">
+                        <i class="bi bi-pencil" style="color: black"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="colunaTarefas-@coluna.Id"
+                 class="card-body p-2"
+                 ondragover="permitirPegarTarefa(event)"
+                 ondrop="soltouTarefa(event)">
+
+                @foreach (var tarefa in coluna.Tarefas.OrderBy(t => t.Posicao))
+                {
+                    <div id="tarefa-@tarefa.Id"
+                         class="card mb-2 text-bg-primary"
+                         draggable="true"
+                         ondragstart="pegarTarefa(event)"
+                         data-tarefa-id="@tarefa.Id"
+                         data-coluna-id="@tarefa.ColunaTarefaId"
+                         data-posicao="@tarefa.Posicao">
+                        <div class="card-body p-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="card-title mb-1">@tarefa.Titulo</h6>
+                                <div class="d-flex">
+                                    <button type="button" class="btn-close-task" data-bs-toggle="modal" data-bs-target="#confirmarDelecaoTarefaModal" onclick="setarTarefaIdParaDeletar(@tarefa.Id)">
+                                        <i class="bi bi-x-lg" style="color: white"></i>
+                                    </button>
+                                    <button type="button" class="btn-close-task" data-bs-toggle="modal" data-bs-target="#editarTarefaModal" onclick="setarDadosParaEdicaoTarefa(@tarefa.Id, '@tarefa.Titulo', '@tarefa.Descricao')">
+                                        <i class="bi bi-pencil" style="color: white"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(tarefa.Descricao))
+                            {
+                                <p class="card-text text-white small mb-0">@tarefa.Descricao</p>
+                            }
+                        </div>
+                        <div class="card-footer bg-secondary-subtle">
+                            <small class="text-muted">
+                                Última atualização: @tarefa.DataAtualizacao.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="card-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#adicionarTarefaModal" onclick="setarColunaId(@coluna.Id)">
+                    + Adicionar Tarefa
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@Html.Partial("Modals/_ErrorModal")
+@Html.Partial("Modals/_AdicionarTarefaModal")
+@Html.Partial("Modals/_CriarColunaModal")
+@Html.Partial("Modals/_ConfirmarDelecaoModal")
+@Html.Partial("Modals/_ConfirmarDelecaoTarefaModal")
+@Html.Partial("Modals/_EditarColunaModal") 
+@Html.Partial("Modals/_EditarTarefaModal")
+
+<script>
+    let colunaPega = null;
+    let draggingTarefa = null;
+
+    function showErrorModal(message) {
+        document.getElementById('errorMessage').innerText = message;
+        var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+        errorModal.show();
+    }
+
+    function pegarTarefa(event) {
+        draggingTarefa = event.currentTarget;
+        event.dataTransfer.setData("text/plain", draggingTarefa.id);
+        event.dataTransfer.effectAllowed = "move";
+        setTimeout(() => {
+            draggingTarefa.classList.add('dragging');
+        }, 0);
+    }
+
+    function permitirPegarTarefa(event) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+    }
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.card')].filter(element => {
+            return element !== draggingTarefa;
+        });
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return {
+                    offset: offset,
+                    element: child
+                };
+            } else {
+                return closest;
+            }
+        }, {
+            offset: Number.NEGATIVE_INFINITY
+        }).element;
+    }
+
+    async function soltouTarefa(event) {
+        event.preventDefault();
+        const container = event.currentTarget;
+
+        if (draggingTarefa) {
+            draggingTarefa.classList.remove('dragging');
+
+            const afterElement = getDragAfterElement(container, event.clientY);
+            if (afterElement == null) {
+                container.appendChild(draggingTarefa);
+            } else {
+                container.insertBefore(draggingTarefa, afterElement);
+            }
+
+            const tarefaId = draggingTarefa.dataset.tarefaId;
+            const parentColumn = container.closest('.card-list');
+            const newColunaId = parentColumn.dataset.colunaId;
+
+            let newPosicao;
+            const allTasksInNewColumn = Array.from(container.children).filter(el => el.id.startsWith('tarefa-'));
+
+            if (allTasksInNewColumn.length === 0) {
+                newPosicao = 0;
+            } else {
+                newPosicao = allTasksInNewColumn.indexOf(draggingTarefa);
+            }
+
+            if (newColunaId === undefined || newPosicao === -1) {
+                showErrorModal('Ocorreu um erro ao determinar a nova posição da tarefa.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Painel/MoverTarefa?tarefaId=${tarefaId}&novaColunaId=${newColunaId}&novaPosicao=${newPosicao}`, {
+                    method: 'PUT'
+                });
+
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    const errorText = await response.text();
+                    showErrorModal('Ocorreu um erro ao mover a tarefa. Detalhes: ' + errorText);
+                }
+            } catch (error) {
+                console.error('Falha na requisição:', error);
+                showErrorModal('Não foi possível se comunicar com o servidor. Verifique sua conexão.');
+            } finally {
+                draggingTarefa = null;
+            }
+        }
+    }
+
+    function pegarColuna(event) {
+        colunaPega = event.currentTarget.closest('.card-list');
+        if (colunaPega) {
+            event.dataTransfer.setData("text/plain", colunaPega.id);
+            event.dataTransfer.effectAllowed = "move";
+            setTimeout(() => {
+                colunaPega.classList.add('dragging');
+            }, 0);
+        }
+    }
+
+    function permitirSoltarColuna(event) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+
+        const draggingElement = document.querySelector('.card-list.dragging');
+
+        if (draggingElement && event.currentTarget !== draggingElement) {
+            const container = event.currentTarget.parentNode;
+            const rect = event.currentTarget.getBoundingClientRect();
+
+            if (event.clientX < rect.left + rect.width / 2) {
+                container.insertBefore(draggingElement, event.currentTarget);
+            } else {
+                container.insertBefore(draggingElement, event.currentTarget.nextSibling);
+            }
+        }
+    }
+
+    async function soltouColuna(event) {
+        event.preventDefault();
+        const data = event.dataTransfer.getData("text/plain");
+
+        if (!data.startsWith("coluna-")) return;
+
+        const colunaMovida = document.getElementById(data);
+        colunaMovida.classList.remove('dragging');
+
+        const container = document.getElementById('board-container');
+        const colunas = Array.from(container.children);
+
+        const colunaId = colunaMovida.dataset.colunaId;
+        const novaPosicao = colunas.indexOf(colunaMovida);
+
+        const response = await fetch(`/Painel/MoverColuna?colunaId=${colunaId}&novaPosicao=${novaPosicao}`, {
+            method: 'PUT'
+        });
+
+        if (!response.ok) {
+            console.error('Falha ao mover a coluna.');
+            showErrorModal('Ocorreu um erro ao mover a coluna. Por favor, tente novamente.');
+        }
+    }
+
+    function setarColunaId(colunaId) {
+        document.getElementById('modal-coluna-id').value = colunaId;
+    }
+
+    async function salvarTarefa() {
+        const titulo = document.getElementById('tarefa-titulo').value;
+        const descricao = document.getElementById('tarefa-descricao').value;
+        const colunaId = document.getElementById('modal-coluna-id').value;
+
+        if (!titulo) {
+            showErrorModal("O título da tarefa não pode ser vazio.");
+            return;
+        }
+
+        const response = await fetch(`/Painel/AdicionarTarefa`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                Titulo: titulo,
+                Descricao: descricao,
+                ColunaTarefaId: colunaId
+            })
+        });
+
+        if (response.ok) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('adicionarTarefaModal'));
+            modal.hide();
+            window.location.reload();
+        } else {
+            console.error('Falha ao adicionar a tarefa.');
+            showErrorModal('Ocorreu um erro ao adicionar a tarefa. Por favor, tente novamente.');
+        }
+    }
+
+    async function salvarColuna() {
+        const titulo = document.getElementById('coluna-titulo').value;
+
+        if (!titulo) {
+            showErrorModal("O título da coluna não pode ser vazio.");
+            return;
+        }
+
+        const response = await fetch(`/Painel/CriarColuna`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                Titulo: titulo
+            })
+        });
+
+        if (response.ok) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('criarColunaModal'));
+            modal.hide();
+            window.location.reload();
+        } else {
+            console.error('Falha ao criar a coluna.');
+            showErrorModal('Ocorreu um erro ao criar a coluna. Por favor, tente novamente.');
+        }
+    }
+
+    function setarColunaIdParaDeletar(colunaId) {
+        document.getElementById('colunaIdParaDeletar').value = colunaId;
+    }
+
+    async function confirmarDelecao() {
+        const colunaId = document.getElementById('colunaIdParaDeletar').value;
+
+        const response = await fetch(`/Painel/DeletarColuna/${colunaId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmarDelecaoModal'));
+            modal.hide();
+            window.location.reload();
+        } else {
+            console.error('Falha ao deletar a coluna.');
+            showErrorModal('Ocorreu um erro ao deletar a coluna. Por favor, tente novamente.');
+        }
+    }
+
+    function setarTarefaIdParaDeletar(tarefaId) {
+        document.getElementById('tarefaIdParaDeletar').value = tarefaId;
+    }
+
+    async function confirmarDelecaoTarefa() {
+        const tarefaId = document.getElementById('tarefaIdParaDeletar').value;
+
+        const response = await fetch(`/Painel/DeletarTarefa/${tarefaId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmarDelecaoTarefaModal'));
+            modal.hide();
+            window.location.reload();
+        } else {
+            console.error('Falha ao deletar a tarefa.');
+            showErrorModal('Ocorreu um erro ao deletar a tarefa. Por favor, tente novamente.');
+        }
+    }
+
+        // Funções para Edição de Coluna
+    function setarDadosParaEdicaoColuna(colunaId, titulo) {
+        document.getElementById('modal-editar-coluna-id').value = colunaId;
+        document.getElementById('coluna-editar-titulo').value = titulo;
+    }
+
+    async function salvarEdicaoColuna() {
+        const colunaId = document.getElementById('modal-editar-coluna-id').value;
+        const novoTitulo = document.getElementById('coluna-editar-titulo').value;
+
+        if (!novoTitulo) {
+            showErrorModal("O título da coluna não pode ser vazio.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`/Painel/AtualizarColuna`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    Id: colunaId,
+                    Titulo: novoTitulo
+                })
+            });
+
+            if (response.ok) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editarColunaModal'));
+                modal.hide();
+                window.location.reload();
+            } else {
+                const errorText = await response.text();
+                showErrorModal('Ocorreu um erro ao atualizar a coluna. Detalhes: ' + errorText);
+            }
+        } catch (error) {
+            console.error('Falha na requisição:', error);
+            showErrorModal('Não foi possível se comunicar com o servidor. Verifique sua conexão.');
+        }
+    }
+
+    function setarDadosParaEdicaoTarefa(tarefaId, titulo, descricao) {
+        document.getElementById('modal-editar-tarefa-id').value = tarefaId;
+        document.getElementById('tarefa-editar-titulo').value = titulo;
+        document.getElementById('tarefa-editar-descricao').value = descricao;
+    }
+
+    async function salvarEdicaoTarefa() {
+        const tarefaId = document.getElementById('modal-editar-tarefa-id').value;
+        const novoTitulo = document.getElementById('tarefa-editar-titulo').value;
+        const novaDescricao = document.getElementById('tarefa-editar-descricao').value;
+
+        if (!novoTitulo) {
+            showErrorModal("O título da tarefa não pode ser vazio.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`/Painel/AtualizarTarefa`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    Id: tarefaId,
+                    Titulo: novoTitulo,
+                    Descricao: novaDescricao
+                })
+            });
+
+            if (response.ok) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editarTarefaModal'));
+                modal.hide();
+                window.location.reload();
+            } else {
+                const errorText = await response.text();
+                showErrorModal('Ocorreu um erro ao atualizar a tarefa. Detalhes: ' + errorText);
+            }
+        } catch (error) {
+            console.error('Falha na requisição:', error);
+            showErrorModal('Não foi possível se comunicar com o servidor. Verifique sua conexão.');
+        }
+    }
+</script>

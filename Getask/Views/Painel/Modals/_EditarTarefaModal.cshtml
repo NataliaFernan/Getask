@@ -1,0 +1,27 @@
+﻿<div class="modal fade" id="editarTarefaModal" tabindex="-1" aria-labelledby="editarTarefaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editarTarefaModalLabel">Editar Tarefa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <input type="hidden" id="modal-editar-tarefa-id" />
+                    <div class="mb-3">
+                        <label for="tarefa-editar-titulo" class="col-form-label">Título:</label>
+                        <input type="text" class="form-control" id="tarefa-editar-titulo">
+                    </div>
+                    <div class="mb-3">
+                        <label for="tarefa-editar-descricao" class="col-form-label">Descrição:</label>
+                        <textarea class="form-control" id="tarefa-editar-descricao"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="salvarEdicaoTarefa()">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
